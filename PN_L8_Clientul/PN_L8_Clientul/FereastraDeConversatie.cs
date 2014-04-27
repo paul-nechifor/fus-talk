@@ -72,7 +72,7 @@ namespace PN_L8_Clientul
             else
             {
                 conversatieRtb.SelectionFont = fontBold;
-                conversatieRtb.AppendText(deLa + " (" + DateTime.Now.ToString("HH:mm:ss") + "): ");
+                conversatieRtb.AppendText(deLa);
                 conversatieRtb.SelectionFont = fontNormal;
                 conversatieRtb.AppendText(text + "\n");
                 conversatieRtb.SelectionStart = conversatieRtb.Text.Length;
@@ -104,7 +104,7 @@ namespace PN_L8_Clientul
             string textul = intrareRtb.Text.Trim();
             intrareRtb.ResetText();
 
-            AdaugaText(textul, protocol.utilizator);
+            AdaugaText(textul, protocol.utilizator + " (" + DateTime.Now.ToString("HH:mm:ss") + "): ");
             protocol.TrimiteTextulLaPrieten(prieten, textul);
         }
 

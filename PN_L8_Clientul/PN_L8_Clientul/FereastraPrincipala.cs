@@ -60,14 +60,7 @@ namespace PN_L8_Clientul
             if (index != System.Windows.Forms.ListBox.NoMatches)
             {
                 string prieten = protocol.numeDePrieteni[index];
-                if (protocol.prieteni[prieten].conectat)
-                {
-                    DeschideFereastraCu(prieten);
-                }
-                else
-                {
-                    MessageBox.Show("Nu poți vorbi cu un prieten care nu este conectat.");
-                }
+                DeschideFereastraCu(prieten);
             }
         }
 
@@ -198,7 +191,7 @@ namespace PN_L8_Clientul
                     if (protocol.prieteni[s].conectat)
                         listaDePrieteni.Items.Add(s + " (conectat)");
                     else
-                        listaDePrieteni.Items.Add(s);
+                        listaDePrieteni.Items.Add(s + " (deconectat)");
             }
         }
     }

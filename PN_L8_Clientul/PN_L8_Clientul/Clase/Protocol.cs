@@ -95,6 +95,8 @@ namespace PN_L8_Clientul.Clase
                 RaspundeLaAiPrietenConectat(radacina, stream);
             else if (tip == "aiPrietenDeconectat")
                 RaspundeLaAiPrietenDeconectat(radacina, stream);
+            else if (tip == "aiTextLasat")
+                RaspundeLaAiTextLasat(radacina, stream);
             else if (tip == "text")
                 RaspundeLaText(radacina, stream);
             else if (tip == "fisier")
@@ -172,6 +174,17 @@ namespace PN_L8_Clientul.Clase
                 fPrincipala.ferestreDeConversatie[nume].AdaugaTextAutomat(nume + " a plecat.");
         }
 
+        public void RaspundeLaAiTextLasat(XmlElement radacina, NetworkStream stream)
+        {
+            ScrieUnMesajInStream(stream, "<mesaj tip='confirmareAiTextLasat'></mesaj>");
+
+            string deLa = radacina.GetAttribute("dela");
+            string text = radacina.GetAttribute("text");
+            string timp = radacina.GetAttribute("timp");
+
+            fPrincipala.FereastraPentru(deLa).AdaugaText(text, deLa + " (" + timp + "): ");
+        }
+
         public void RaspundeLaText(XmlElement radacina, NetworkStream stream)
         {
             ScrieUnMesajInStream(stream, "<mesaj tip='confirmareText'></mesaj>");
@@ -179,7 +192,7 @@ namespace PN_L8_Clientul.Clase
             string deLa = radacina.GetAttribute("utilizator");
             string text = radacina.GetAttribute("text");
 
-            fPrincipala.FereastraPentru(deLa).AdaugaText(text, deLa);
+            fPrincipala.FereastraPentru(deLa).AdaugaText(text, deLa + " (" + DateTime.Now.ToString("HH:mm:ss") + "): ");
         }
 
         public void RaspundeLaFisier(XmlElement radacina, NetworkStream stream)
@@ -308,7 +321,11 @@ namespace PN_L8_Clientul.Clase
             }
             else
             {
-                MessageBox.Show("Mesajul nu va fi primit de „" + prieten + "” pentru că nu este conectat.");
+                string msg = String.Format("<mesaj tip='lasaText' dela='{0}' spre='{1}' text='{2}' timp='{3}'></mesaj>",
+                        utilizator, prieten, textul, DateTime.Now.ToString("HH:mm:ss"));
+                TrimiteMesaj(msg, endPointServer, delegatulNul);
+
+                MessageBox.Show("Mesajul va fi primit de „" + prieten + "” la reconectare.");
             }
         }
 

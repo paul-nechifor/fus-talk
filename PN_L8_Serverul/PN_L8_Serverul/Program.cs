@@ -23,7 +23,8 @@ namespace PN_L8_Serverul
         public List<string> prieteni;
         // Dacă utilizatorul ăsta nu este conectat în lista asta vor fi puși cei care i-au trimis o cerere de prietenie
         // când era absent.
-        public List<string> listaDePrieteniPosibili; 
+        public List<string> listaDePrieteniPosibili;
+        public List<string> listaDeTexteLasate;
         public IPEndPoint endPoint;
     }
 
@@ -124,6 +125,8 @@ namespace PN_L8_Serverul
                 RaspundeLaDeconectare(radacina, client, stream);
             else if (tip == "cererePrietenie")
                 RaspundeLaCerereDePrietenie(radacina, client, stream);
+            else if (tip == "lasaText")
+                RaspundeLaLasaText(radacina, client, stream, mesaj);
 
             client.Close();
         }
@@ -167,6 +170,15 @@ namespace PN_L8_Serverul
                     {
                         utilizatori[nume].listaDePrieteniPosibili.Clear();
                     }
+
+                    // Trebuiesc trimise textele pe care le-a primit cât a fost plecat.
+                    foreach (string text in utilizatori[nume].listaDeTexteLasate)
+                        TrimiteTextLasat(nume, text);
+
+                    lock (utilizatori)
+                    {
+                        utilizatori[nume].listaDeTexteLasate.Clear();
+                    }
                 }
             }
             // Dacă nu există, se înregistrează.
@@ -181,6 +193,7 @@ namespace PN_L8_Serverul
                 u.prieteni = new List<string>();
                 u.endPoint = new IPEndPoint(IPAddress.Parse(u.ip), u.port);
                 u.listaDePrieteniPosibili = new List<string>();
+                u.listaDeTexteLasate = new List<string>();
 
                 lock (utilizatori)
                 {
@@ -224,23 +237,48 @@ namespace PN_L8_Serverul
 
         private static void RaspundeLaCerereDePrietenie(XmlElement radacina, TcpClient client, NetworkStream stream)
         {
-            {
-                string nume = radacina.GetAttribute("utilizator");
-                string prieten = radacina.GetAttribute("prieten");
+            string nume = radacina.GetAttribute("utilizator");
+            string prieten = radacina.GetAttribute("prieten");
 
-                if (!utilizatori.ContainsKey(nume))
-                    ScrieUnMesajInStream(stream, "<mesaj tip='raspunsCererePrietenie' succes='false' motiv='nuExisti'></mesaj>");
+            if (!utilizatori.ContainsKey(nume))
+                ScrieUnMesajInStream(stream, "<mesaj tip='raspunsCererePrietenie' succes='false' motiv='nuExisti'></mesaj>");
+            else
+            {
+                if (!utilizatori.ContainsKey(prieten))
+                    ScrieUnMesajInStream(stream, "<mesaj tip='raspunsCererePrietenie' succes='false' motiv='utilizatorInexistent'></mesaj>");
                 else
                 {
-                    if (!utilizatori.ContainsKey(prieten))
-                        ScrieUnMesajInStream(stream, "<mesaj tip='raspunsCererePrietenie' succes='false' motiv='utilizatorInexistent'></mesaj>");
+                    ScrieUnMesajInStream(stream, "<mesaj tip='raspunsCererePrietenie' succes='true'></mesaj>");
+                    if (utilizatori[prieten].conectat)
+                        TrimiteCerereaDePrietenie(nume, prieten);
                     else
-                    {
-                        ScrieUnMesajInStream(stream, "<mesaj tip='raspunsCererePrietenie' succes='true'></mesaj>");
-                        if (utilizatori[prieten].conectat)
-                            TrimiteCerereaDePrietenie(nume, prieten);
-                        else
+                        lock (utilizatori)
+                        {
                             utilizatori[prieten].listaDePrieteniPosibili.Add(nume);
+                        }
+                }
+            }
+        }
+
+        private static void RaspundeLaLasaText(XmlElement radacina, TcpClient client, NetworkStream stream, string mesaj)
+        {
+            string deLa = radacina.GetAttribute("dela");
+            string spre = radacina.GetAttribute("spre");
+            string text = radacina.GetAttribute("text");
+            string timp = radacina.GetAttribute("timp");
+
+            if (!utilizatori.ContainsKey(deLa))
+                ScrieUnMesajInStream(stream, "<mesaj tip='raspunsLasaMesaj' succes='false' motiv='nuExisti'></mesaj>");
+            else
+            {
+                if (!utilizatori.ContainsKey(spre))
+                    ScrieUnMesajInStream(stream, "<mesaj tip='raspunsLasaMesaj' succes='false' motiv='utilizatorInexistent'></mesaj>");
+                else
+                {
+                    ScrieUnMesajInStream(stream, "<mesaj tip='raspunsLasaMesaj' succes='true'></mesaj>");
+                    lock (utilizatori)
+                    {
+                        utilizatori[spre].listaDeTexteLasate.Add(mesaj);
                     }
                 }
             }
@@ -353,7 +391,8 @@ namespace PN_L8_Serverul
                     // Acum trebuie să-l anunțe pe cel care a făcut cererea de decizia celuilalt.
                     string mesajNou = String.Format("<mesaj tip='raspunsCererePrietenie' acceptat='{0}' dela='{1}'></mesaj>",
                             acceptat, catre);
-                    TrimiteMesaj(mesajNou, utilizatori[deLa].endPoint, Program.delegatulNul);
+                    if (utilizatori[deLa].conectat)
+                        TrimiteMesaj(mesajNou, utilizatori[deLa].endPoint, Program.delegatulNul);
 
                     // Dacă a acceptat trebuie să-i informez de conectarea celuilalt și să-i adaug ca prieteni.
                     if (acceptat)
@@ -369,6 +408,22 @@ namespace PN_L8_Serverul
                     }
                 };
             TrimiteMesaj(msg, utilizatori[catre].endPoint, delegat);
+        }
+
+        private static void TrimiteTextLasat(string spre, string mesaj)
+        {
+            XmlDocument document = new XmlDocument();
+            document.LoadXml(mesaj);
+            XmlElement radacina = document.DocumentElement;
+
+            string deLa = radacina.GetAttribute("dela");
+            string text = radacina.GetAttribute("text");
+            string timp = radacina.GetAttribute("timp");
+
+            string mesajNou = String.Format("<mesaj tip='aiTextLasat' dela='{0}' text='{1}' timp='{2}'></mesaj>",
+                            deLa, text, timp);
+
+            TrimiteMesaj(mesajNou, utilizatori[spre].endPoint, delegatulNul);
         }
 
         private static string ConstruiesteListaDePrieteni(string utilizator)
