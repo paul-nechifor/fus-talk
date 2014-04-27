@@ -57,12 +57,15 @@ namespace PN_L8_Serverul
 
         private static void BuclaDeAscultare()
         {
-            TcpListener server = new TcpListener(IPAddress.Any, port);
-            server.Start();
+            //TcpListener server = new TcpListener(IPAddress.Any, port);
+            //server.Start();
+            Socket server = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+            server.Bind(new IPEndPoint(IPAddress.Any, port));
+            server.Listen(10);
 
             while (true)
             {
-                TcpClient client = server.AcceptTcpClient();
+                Socket client = server.Accept();
 
                 new Thread(() =>
                     {
@@ -107,12 +110,12 @@ namespace PN_L8_Serverul
             stream.Close();
         }
 
-        private static void RaspundeLaClient(TcpClient client)
+        private static void RaspundeLaClient(Socket client)
         {
-            NetworkStream stream = client.GetStream();
+            NetworkStream stream = new NetworkStream(client, true);
 
             string mesaj = CitesteUnMesajDinStream(stream);
-            Console.Write("De la {0}: {1}\n", client.Client.RemoteEndPoint, mesaj);
+            Console.Write("De la {0}: {1}\n", client.RemoteEndPoint, mesaj);
             XmlDocument mesajXml = new XmlDocument();
             mesajXml.LoadXml(mesaj);
             XmlElement radacina = mesajXml.DocumentElement;
@@ -131,7 +134,7 @@ namespace PN_L8_Serverul
             client.Close();
         }
 
-        private static void RaspundeLaConectare(XmlElement radacina, TcpClient client, NetworkStream stream)
+        private static void RaspundeLaConectare(XmlElement radacina, Socket client, NetworkStream stream)
         {
             string nume = radacina.GetAttribute("utilizator");
             string parola = radacina.GetAttribute("parola");
@@ -149,7 +152,7 @@ namespace PN_L8_Serverul
                     lock (utilizatori)
                     {
                         utilizatori[nume].conectat = true;
-                        utilizatori[nume].ip = ((IPEndPoint)client.Client.RemoteEndPoint).Address.ToString();
+                        utilizatori[nume].ip = ((IPEndPoint)client.RemoteEndPoint).Address.ToString();
                         utilizatori[nume].port = port;
                         utilizatori[nume].endPoint = new IPEndPoint(IPAddress.Parse(utilizatori[nume].ip), utilizatori[nume].port);
                     }
@@ -187,7 +190,7 @@ namespace PN_L8_Serverul
                 Utilizator u = new Utilizator();
                 u.nume = nume;
                 u.rezumatParola = RezumatSHA256(parola);
-                u.ip = ((IPEndPoint)client.Client.RemoteEndPoint).Address.ToString();
+                u.ip = ((IPEndPoint)client.RemoteEndPoint).Address.ToString();
                 u.port = port;
                 u.conectat = true;
                 u.prieteni = new List<string>();
@@ -208,7 +211,7 @@ namespace PN_L8_Serverul
             }
         }
 
-        private static void RaspundeLaDeconectare(XmlElement radacina, TcpClient client, NetworkStream stream)
+        private static void RaspundeLaDeconectare(XmlElement radacina, Socket client, NetworkStream stream)
         {
             string nume = radacina.GetAttribute("utilizator");
 
@@ -235,7 +238,7 @@ namespace PN_L8_Serverul
             }
         }
 
-        private static void RaspundeLaCerereDePrietenie(XmlElement radacina, TcpClient client, NetworkStream stream)
+        private static void RaspundeLaCerereDePrietenie(XmlElement radacina, Socket client, NetworkStream stream)
         {
             string nume = radacina.GetAttribute("utilizator");
             string prieten = radacina.GetAttribute("prieten");
@@ -260,7 +263,7 @@ namespace PN_L8_Serverul
             }
         }
 
-        private static void RaspundeLaLasaText(XmlElement radacina, TcpClient client, NetworkStream stream, string mesaj)
+        private static void RaspundeLaLasaText(XmlElement radacina, Socket client, NetworkStream stream, string mesaj)
         {
             string deLa = radacina.GetAttribute("dela");
             string spre = radacina.GetAttribute("spre");

@@ -41,15 +41,18 @@ namespace PN_L8_Clientul.Clase
 
         public void PornesteBuclaDeAscultare()
         {
-            TcpListener server = null;
+            Socket server = null;
 
             // Caută primul port de ascultare liber.
             for (portulDeAscultare = ascultareDeLa; portulDeAscultare < 65535; portulDeAscultare++)
             {
                 try
                 {
-                    server = new TcpListener(IPAddress.Any, portulDeAscultare);
-                    server.Start();
+                    //server = new TcpListener(IPAddress.Any, portulDeAscultare);
+                    //server.Start();
+                    server = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+                    server.Bind(new IPEndPoint(IPAddress.Any, portulDeAscultare));
+                    server.Listen(10);
                     break;
                 }
                 catch (Exception e)
@@ -69,7 +72,7 @@ namespace PN_L8_Clientul.Clase
                 {
                     while (true)
                     {
-                        TcpClient client = server.AcceptTcpClient();
+                        Socket client = server.Accept();
                         RaspundeLaClient(client);
                     }
                 });
@@ -77,9 +80,9 @@ namespace PN_L8_Clientul.Clase
             bucla.Start();
         }
 
-        private void RaspundeLaClient(TcpClient client)
+        private void RaspundeLaClient(Socket client)
         {
-            NetworkStream stream = client.GetStream();
+            NetworkStream stream = new NetworkStream(client, true);
 
             string mesaj = CitesteUnMesajDinStream(stream);
             XmlDocument mesajXml = new XmlDocument();
@@ -382,14 +385,16 @@ namespace PN_L8_Clientul.Clase
 
         private int AcceptaFisier(string locatieSalvare, string deLa)
         {
-            TcpListener server = null;
+            //TcpListener server = null;
+            Socket server = null;
             int portPrimire;
             for (portPrimire = 4000; portPrimire < 65535; portPrimire++)
             {
                 try
                 {
-                    server = new TcpListener(IPAddress.Any, portPrimire);
-                    server.Start();
+                    server = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+                    server.Bind(new IPEndPoint(IPAddress.Any, portPrimire));
+                    server.Listen(10);
                     break;
                 }
                 catch (Exception e) { }
@@ -400,9 +405,10 @@ namespace PN_L8_Clientul.Clase
 
             Thread fir = new Thread(() =>
             {
-                TcpClient client = server.AcceptTcpClient();
+                Socket client = server.Accept();
                 Stream stream = File.Open(locatieSalvare, FileMode.Create);
-                client.GetStream().CopyTo(stream);
+                NetworkStream streamClient = new NetworkStream(client, true);
+                streamClient.CopyTo(stream);
                 client.Close();
                 stream.Close();
                 fPrincipala.FereastraPentru(deLa).AdaugaTextAutomat("S-a terminat descărcarea fișierului în „" 
