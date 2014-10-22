@@ -3,6 +3,8 @@
 A sort of Yahoo Messenger clone written in C# as one of my homeworks for the
 [Application Development on .NET Platform][1] course.
 
+![Fus Talk cover.](screenshot.png)
+
 What follows is the documentation I wrote at the time in Romanian.
 
 ## Mesaje client spre server
