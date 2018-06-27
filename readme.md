@@ -1,3 +1,7 @@
+# This repository has been moved to [gitlab.com/paul-nechifor/fus-talk](http://gitlab.com/paul-nechifor/fus-talk).
+
+Old readme:
+
 # Fus Talk
 
 A sort of Yahoo Messenger clone written in C# as one of my homeworks for the
